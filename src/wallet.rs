@@ -34,7 +34,7 @@ pub struct WalletDB {
     asset_utxos: Vec<UTXOinfo>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UTXOinfo {
     txout: TxOut,
     sk: bitcoin::PrivateKey,
@@ -134,11 +134,10 @@ impl WalletCtx {
             },
             spend_ctx: None,
         });
+        println!("Pk: {}", pk.public_key);
         let script_pubkey = desc_cov.witness_script();
-        println!("{}", script_pubkey.to_hex());
         let addr =
             elements::Address::p2wsh(&script_pubkey, None, &elements::AddressParams::ELEMENTS);
-        println!("{}", addr.script_pubkey());
         addr
     }
 
@@ -161,7 +160,9 @@ impl WalletCtx {
                             vout: i as u32,
                         },
                     };
-                    self.walletdb.btc_utxos.push(utxo_info);
+                    if !self.walletdb.btc_utxos.contains(&utxo_info) {
+                        self.walletdb.btc_utxos.push(utxo_info);
+                    }
                 }
             }
 
@@ -185,7 +186,9 @@ impl WalletCtx {
                             vout: i as u32,
                         },
                     };
-                    self.walletdb.asset_utxos.push(utxo_info);
+                    if !self.walletdb.asset_utxos.contains(&utxo_info) {
+                        self.walletdb.asset_utxos.push(utxo_info);
+                    }
                 }
             }
         }
@@ -214,7 +217,7 @@ impl WalletCtx {
         println!("asset balance: {}", asset_bal);
     }
 
-    pub fn sendasset(&mut self, reciver_pk: bitcoin::PublicKey, amt: u64) {
+    pub fn sendasset(&mut self, reciver_pk: bitcoin::PublicKey, amt: u64) -> elements::Transaction {
         // Create the sender context
         let mut tx = elements::Transaction::default();
         tx.version = 2;
@@ -307,7 +310,8 @@ impl WalletCtx {
         // Remove the utxos
         self.walletdb.btc_utxos.remove(0);
         self.walletdb.asset_utxos.remove(asset_utxo_idx);
-        println!("{}", serialize(&tx).to_hex());
+        self.recieve(&serialize(&tx));
+        tx
     }
 }
 
@@ -334,7 +338,7 @@ pub fn txin_from_outpoint(outpoint: OutPoint) -> TxIn {
     }
 }
 
-fn get_explicit(amt: confidential::Value) -> u64 {
+pub(crate) fn get_explicit(amt: confidential::Value) -> u64 {
     if let confidential::Value::Explicit(x) = amt {
         x
     } else {

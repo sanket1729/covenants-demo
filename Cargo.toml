@@ -11,6 +11,7 @@ bitcoin = "0.25"
 miniscript = {git = "https://github.com/sanket1729/rust-miniscript-elements"}
 elements = {git = "https://github.com/sanket1729/rust-elements/", branch = "elements_opcodes"}
 rand = "0.7.3"
+rust_decimal = "1.8.1"
 
 [dependencies.serde]
 version = "1.0"
